@@ -201,7 +201,11 @@ campsiteRouter.route('/:campsiteId/comments/:commentId')
 .delete(authenticate.verifyUser, (req, res, next) => {
     Campsite.findById(req.params.campsiteId)
     .then(campsite => {
-        if (campsite && campsite.comments.id(req.params.commentId)) {
+        if (campsite && !req.user.admin && !campsite.comments.id(req.params.commentId).author.equals(req.user._id)) {
+            err = new Error('You are not authorized to perform this operation!');
+            err.status = 403;
+            return next(err);
+        } else if (campsite && campsite.comments.id(req.params.commentId)) {
             campsite.comments.id(req.params.commentId).remove();
             campsite.save()
             .then(campsite => {
