@@ -8,12 +8,16 @@ var app = require('../app');
 var debug = require('debug')('nucampsiteserver:server');
 var http = require('http');
 
+const https = require('https'); //added for use of HTTPS server
+const fs = require('fs'); //added for use of HTTPS server
+
 /**
  * Get port from environment and store in Express.
  */
 
 var port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
+app.set('secPort', port + 443);// "app.set" is a way to set up a variable that can be accessed easily from anywhere in the express application by using "app.get"
 
 /**
  * Create HTTP server.
@@ -28,6 +32,27 @@ var server = http.createServer(app);
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
+
+/**
+ * Create HTTPS server.
+ */
+
+const options = { //set up the private key and public certificate, object set up as an object of 2 properties
+  key: fs.readFileSync(__dirname + '/server.key'), //value of "fs.readFileSync", "__dirname" variable points to the current directory. This line reads in the contents of the "server.key" (private key) file into the express app's running memory
+  cert: fs.readFileSync(__dirname + '/server.cert') //Reads in the contents of the "server.cert" (certified public key) into the express app's running memory
+};
+
+const secureServer = https.createServer(options, app);//Use "options" object to configure the server. "https.createServer" is passed the private key and certificate through the options object
+
+/**
+* Listen on provided port, on all network interfaces.
+*/
+
+secureServer.listen(app.get('secPort'), () => { //"app.get" is able to retreive the value stored in the "app.set" line above. Include a callback to console log a message which will be called once teh "listen" method has exectued successfully
+  console.log('Server listening on port', app.get('secPort'));
+});
+secureServer.on('error', onError);
+secureServer.on('listening', onListening);
 
 /**
  * Normalize a port into a number, string, or false.
